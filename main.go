@@ -1,11 +1,12 @@
 package main
 
 import (
-	"crypto/rand"
+	"archive/zip"
 	"flag"
 	"fmt"
 	"io"
 	"os"
+	"strings"
 )
 
 func main() {
@@ -14,12 +15,28 @@ func main() {
 	)
 	flag.Parse()
 
-	file, err := os.Create(*name)
+	zipFile, err := os.Create(*name)
 	if err != nil {
 		panic(err)
 	}
-	defer file.Close()
-	io.CopyN(file, rand.Reader, 1024)
+	defer zipFile.Close()
+
+	zipWriter := zip.NewWriter(zipFile)
+	defer zipWriter.Close()
+
+	a, err := zipWriter.Create("a.txt")
+	if err != nil {
+		panic(err)
+	}
+
+	io.Copy(a, strings.NewReader("1つめのファイルのテキストです。"))
+
+	b, err := zipWriter.Create("b.txt")
+	if err != nil {
+		panic(err)
+	}
+
+	io.Copy(b, strings.NewReader("2つめのファイルのテキストです。"))
 
 	fmt.Printf("created %s file", *name)
 }
