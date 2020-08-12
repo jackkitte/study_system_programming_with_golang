@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/rand"
 	"flag"
 	"fmt"
 	"io"
@@ -9,23 +10,16 @@ import (
 
 func main() {
 	var (
-		copySource      = flag.String("copySource", "copySource.txt", "コピー元ファイル名")
-		copyDestination = flag.String("copyDestination", "copyDestination.txt", "コピー先ファイル名")
+		name = flag.String("name", "sample.txt", "ファイル名")
 	)
 	flag.Parse()
 
-	oldFile, err := os.Open(*copySource)
+	file, err := os.Create(*name)
 	if err != nil {
 		panic(err)
 	}
-	defer oldFile.Close()
+	defer file.Close()
+	io.CopyN(file, rand.Reader, 1024)
 
-	newFile, err := os.Create(*copyDestination)
-	if err != nil {
-		panic(err)
-	}
-	defer newFile.Close()
-	io.Copy(newFile, oldFile)
-
-	fmt.Printf("finished copy %s to %s", *copySource, *copyDestination)
+	fmt.Printf("created %s file", *name)
 }
