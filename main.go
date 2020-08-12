@@ -1,22 +1,31 @@
 package main
 
 import (
-	"bufio"
+	"flag"
 	"fmt"
 	"io"
-	"net"
-	"net/http"
 	"os"
 )
 
 func main() {
-	conn, err := net.Dial("tcp", "ascii.jp:80")
+	var (
+		copySource      = flag.String("copySource", "copySource.txt", "コピー元ファイル名")
+		copyDestination = flag.String("copyDestination", "copyDestination.txt", "コピー先ファイル名")
+	)
+	flag.Parse()
+
+	oldFile, err := os.Open(*copySource)
 	if err != nil {
 		panic(err)
 	}
-	conn.Write([]byte("GET / HTTP/1.0\r\nHost: ascii.jp\r\n\r\n"))
-	res, err := http.ReadResponse(bufio.NewReader(conn), nil)
-	fmt.Println(res.Header)
-	defer res.Body.Close()
-	io.Copy(os.Stdout, res.Body)
+	defer oldFile.Close()
+
+	newFile, err := os.Create(*copyDestination)
+	if err != nil {
+		panic(err)
+	}
+	defer newFile.Close()
+	io.Copy(newFile, oldFile)
+
+	fmt.Printf("finished copy %s to %s", *copySource, *copyDestination)
 }
