@@ -2,26 +2,16 @@ package main
 
 import (
 	"archive/zip"
-	"flag"
-	"fmt"
 	"io"
-	"os"
+	"net/http"
 	"strings"
 )
 
-func main() {
-	var (
-		name = flag.String("name", "sample.txt", "ファイル名")
-	)
-	flag.Parse()
+func handler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/zip")
+	w.Header().Set("Content-Disposition", "attachment; filename=ascii_sample.zip")
 
-	zipFile, err := os.Create(*name)
-	if err != nil {
-		panic(err)
-	}
-	defer zipFile.Close()
-
-	zipWriter := zip.NewWriter(zipFile)
+	zipWriter := zip.NewWriter(w)
 	defer zipWriter.Close()
 
 	a, err := zipWriter.Create("a.txt")
@@ -37,6 +27,9 @@ func main() {
 	}
 
 	io.Copy(b, strings.NewReader("2つめのファイルのテキストです。"))
+}
 
-	fmt.Printf("created %s file", *name)
+func main() {
+	http.HandleFunc("/", handler)
+	http.ListenAndServe(":8080", nil)
 }
