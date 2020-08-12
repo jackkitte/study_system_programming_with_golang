@@ -1,14 +1,16 @@
 package main
 
 import (
-	"bufio"
+	"encoding/json"
 	"os"
 )
 
 func main() {
-	buffer := bufio.NewWriter(os.Stdout)
-	buffer.WriteString("bufio.Writer\n")
-	buffer.Flush()
-	buffer.WriteString("example\n")
-	buffer.Flush()
+	encoder := json.NewEncoder(os.Stdout)
+	encoder.SetIndent("", "  ")
+	encoder.Encode(
+		map[string]string{
+			"example": "encoding/json",
+			"hello":   "world",
+		})
 }
