@@ -6,9 +6,7 @@ import (
 	"strings"
 )
 
-var source = `1行目
-2行目
-3行目`
+var source = `1行目 2行目 3行目`
 
 func main() {
 	reader := bufio.NewReader(strings.NewReader(source))
@@ -18,5 +16,11 @@ func main() {
 		if err != nil {
 			break
 		}
+	}
+
+	scanner := bufio.NewScanner(strings.NewReader(source))
+	scanner.Split(bufio.ScanWords)
+	for scanner.Scan() {
+		fmt.Printf("%#v\n", scanner.Text())
 	}
 }
