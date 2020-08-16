@@ -1,18 +1,30 @@
 package main
 
 import (
-	"bytes"
-	"fmt"
 	"io"
-	"io/ioutil"
+	"os"
+	"strings"
+)
+
+var (
+	computer    = strings.NewReader("COMPUTER")
+	system      = strings.NewReader("SYSTEM")
+	programming = strings.NewReader("PROGRAMMING")
 )
 
 func main() {
-	var buffer bytes.Buffer
-	reader := bytes.NewBufferString("Example of io.TeeReader\n")
-	teeReader := io.TeeReader(reader, &buffer)
+	var stream io.Reader
 
-	_, _ = ioutil.ReadAll(teeReader)
+	a := io.NewSectionReader(programming, 5, 1)
+	s := io.LimitReader(system, 1)
+	c := io.LimitReader(computer, 1)
+	i := io.NewSectionReader(programming, 8, 1)
 
-	fmt.Println(buffer.String())
+	pr, pw := io.Pipe()
+	writer := io.MultiWriter(pw, pw)
+	go io.CopyN(writer, i, 1)
+	defer pw.Close()
+	stream = io.MultiReader(a, s, c, io.LimitReader(pr, 2))
+
+	io.Copy(os.Stdout, stream)
 }
