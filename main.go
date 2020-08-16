@@ -1,35 +1,46 @@
 package main
 
 import (
-	"archive/zip"
+	"encoding/binary"
+	"fmt"
 	"io"
-	"net/http"
-	"strings"
+	"os"
 )
 
-func handler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/zip")
-	w.Header().Set("Content-Disposition", "attachment; filename=ascii_sample.zip")
+func dumpChunk(chunk io.Reader) {
+	var length int32
+	binary.Read(chunk, binary.BigEndian, &length)
+	buffer := make([]byte, 4)
+	chunk.Read(buffer)
+	fmt.Printf("chunk '%v' (%d bytes)\n", string(buffer), length)
+}
 
-	zipWriter := zip.NewWriter(w)
-	defer zipWriter.Close()
+func readChunks(file *os.File) []io.Reader {
+	var chunks []io.Reader
 
-	a, err := zipWriter.Create("a.txt")
-	if err != nil {
-		panic(err)
+	file.Seek(8, 0)
+	var offset int64 = 8
+
+	for {
+		var length int32
+		err := binary.Read(file, binary.BigEndian, &length)
+		if err == io.EOF {
+			break
+		}
+		chunks = append(chunks, io.NewSectionReader(file, offset, int64(length)+12))
+		offset, _ = file.Seek(int64(length+8), 1)
 	}
 
-	io.Copy(a, strings.NewReader("1つめのファイルのテキストです。"))
-
-	b, err := zipWriter.Create("b.txt")
-	if err != nil {
-		panic(err)
-	}
-
-	io.Copy(b, strings.NewReader("2つめのファイルのテキストです。"))
+	return chunks
 }
 
 func main() {
-	http.HandleFunc("/", handler)
-	http.ListenAndServe(":8080", nil)
+	file, err := os.Open("Lenna.png")
+	if err != nil {
+		panic(err)
+	}
+	chunks := readChunks(file)
+	for _, chunk := range chunks {
+		dumpChunk(chunk)
+	}
 }
