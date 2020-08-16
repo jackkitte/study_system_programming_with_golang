@@ -1,11 +1,26 @@
 package main
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
+	"hash/crc32"
 	"io"
 	"os"
 )
+
+func textChunk(text string) io.Reader {
+	byteData := []byte(text)
+	var buffer bytes.Buffer
+	binary.Write(&buffer, binary.BigEndian, int32(len(byteData)))
+	buffer.WriteString("tEXt")
+	buffer.Write(byteData)
+	crc := crc32.NewIEEE()
+	io.WriteString(crc, "tEXt")
+	binary.Write(&buffer, binary.BigEndian, crc.Sum32())
+
+	return &buffer
+}
 
 func dumpChunk(chunk io.Reader) {
 	var length int32
@@ -13,6 +28,11 @@ func dumpChunk(chunk io.Reader) {
 	buffer := make([]byte, 4)
 	chunk.Read(buffer)
 	fmt.Printf("chunk '%v' (%d bytes)\n", string(buffer), length)
+	if bytes.Equal(buffer, []byte("tEXt")) {
+		rawText := make([]byte, length)
+		chunk.Read(rawText)
+		fmt.Println(string(rawText))
+	}
 }
 
 func readChunks(file *os.File) []io.Reader {
@@ -39,8 +59,31 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	defer file.Close()
+
+	newFile, err := os.Create("Lenna2.png")
+	if err != nil {
+		panic(err)
+	}
+	defer newFile.Close()
+
 	chunks := readChunks(file)
-	for _, chunk := range chunks {
+	io.WriteString(newFile, "\x89PNG\r\n\x1a\n")
+	io.Copy(newFile, chunks[0])
+	io.Copy(newFile, textChunk("ASCII PROGRAMMING++"))
+
+	for _, chunk := range chunks[1:] {
+		io.Copy(newFile, chunk)
+	}
+
+	file2, err := os.Open("Lenna2.png")
+	if err != nil {
+		panic(err)
+	}
+	defer file2.Close()
+
+	chunks2 := readChunks(file2)
+	for _, chunk := range chunks2 {
 		dumpChunk(chunk)
 	}
 }
