@@ -3,25 +3,22 @@ package main
 import (
 	"fmt"
 	"net"
+	"time"
 )
 
 func main() {
-	fmt.Println("Server is running at localhost:8888")
-	conn, err := net.ListenPacket("udp", "localhost:8888")
+	fmt.Println("Start tick server at 224.0.0.1:9999")
+	conn, err := net.Dial("udp", "224.0.0.1:9999")
 	if err != nil {
 		panic(err)
 	}
 	defer conn.Close()
-	buffer := make([]byte, 1500)
-	for {
-		length, remoteAddress, err := conn.ReadFrom(buffer)
-		if err != nil {
-			panic(err)
-		}
-		fmt.Printf("Received from %v: %v\n", remoteAddress, string(buffer[:length]))
-		_, err = conn.WriteTo([]byte("Hello from Server"), remoteAddress)
-		if err != nil {
-			panic(err)
-		}
+	start := time.Now()
+	wait := 10*time.Second - time.Nanosecond*time.Duration(start.UnixNano()%(10*1000*1000*1000))
+	time.Sleep(wait)
+	ticker := time.Tick(10 * time.Second)
+	for now := range ticker {
+		conn.Write([]byte(now.String()))
+		fmt.Println("Tick: ", now.String())
 	}
 }
